@@ -36,7 +36,7 @@ class SettingsWindowController {
         let window = NSWindow(contentViewController: hostingController)
         window.title = "Prayer Times Settings"
         window.styleMask = [.titled, .closable]
-        window.setContentSize(NSSize(width: 420, height: 520))
+        window.setContentSize(NSSize(width: 420, height: 580))
         window.center()
         window.isReleasedWhenClosed = false
         window.makeKeyAndOrderFront(nil)
