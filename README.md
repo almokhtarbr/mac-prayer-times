@@ -41,9 +41,14 @@ A free, local, no-BS Mac menu bar app that shows prayer times and plays the full
 
 1. Go to [Releases](../../releases)
 2. Download `PrayerTimes.zip`
-3. Extract and drag `PrayerTimes.app` to Applications
-4. Right-click → Open (first time only, to bypass Gatekeeper)
-5. Grant location permission when asked
+3. Extract and drag `PrayerTimes.app` to `/Applications`
+4. Open Terminal and run:
+   ```bash
+   xattr -cr /Applications/PrayerTimes.app
+   ```
+   (This removes the macOS quarantine flag — the app is unsigned so Gatekeeper blocks it without this step)
+5. Double-click to open
+6. Grant location permission when asked
 
 ### Option 2: Build from source
 
