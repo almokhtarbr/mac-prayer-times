@@ -103,10 +103,7 @@ struct MenuBarView: View {
     private var footer: some View {
         HStack {
             Button("Settings...") {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                    NSApp.activate(ignoringOtherApps: true)
-                    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-                }
+                SettingsWindowController.shared.open(prayerManager: prayerManager)
             }
 
             Spacer()
