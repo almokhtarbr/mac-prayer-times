@@ -11,6 +11,38 @@ struct PrayerEntry: Identifiable {
     let isNext: Bool
 }
 
+enum CalculationMethodOption: String, CaseIterable, Identifiable {
+    case northAmerica = "ISNA (North America)"
+    case muslimWorldLeague = "Muslim World League"
+    case egyptian = "Egyptian"
+    case ummAlQura = "Umm al-Qura (Saudi)"
+    case dubai = "Dubai"
+    case karachi = "Karachi"
+    case kuwait = "Kuwait"
+    case qatar = "Qatar"
+    case singapore = "Singapore"
+    case tehran = "Tehran"
+    case turkey = "Turkey"
+
+    var id: String { rawValue }
+
+    var calculationParameters: CalculationParameters {
+        switch self {
+        case .northAmerica: return CalculationMethod.northAmerica.params
+        case .muslimWorldLeague: return CalculationMethod.muslimWorldLeague.params
+        case .egyptian: return CalculationMethod.egyptian.params
+        case .ummAlQura: return CalculationMethod.ummAlQura.params
+        case .dubai: return CalculationMethod.dubai.params
+        case .karachi: return CalculationMethod.karachi.params
+        case .kuwait: return CalculationMethod.kuwait.params
+        case .qatar: return CalculationMethod.qatar.params
+        case .singapore: return CalculationMethod.singapore.params
+        case .tehran: return CalculationMethod.tehran.params
+        case .turkey: return CalculationMethod.turkey.params
+        }
+    }
+}
+
 class PrayerManager: ObservableObject {
     @Published var prayerEntries: [PrayerEntry] = []
     @Published var nextPrayerEntry: PrayerEntry?
@@ -116,9 +148,21 @@ class PrayerManager: ObservableObject {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
     }
 
+    var selectedMethod: CalculationMethodOption {
+        let raw = UserDefaults.standard.string(forKey: "calculationMethod") ?? CalculationMethodOption.northAmerica.rawValue
+        return CalculationMethodOption(rawValue: raw) ?? .northAmerica
+    }
+
+    func setCalculationMethod(_ method: CalculationMethodOption) {
+        UserDefaults.standard.set(method.rawValue, forKey: "calculationMethod")
+        if let location = locationManager.location {
+            calculateTimes(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
+        }
+    }
+
     func calculateTimes(latitude: Double, longitude: Double) {
         let coordinates = Coordinates(latitude: latitude, longitude: longitude)
-        let params = CalculationMethod.northAmerica.params
+        let params = selectedMethod.calculationParameters
         let now = Date()
         let components = Calendar.current.dateComponents([.year, .month, .day], from: now)
 

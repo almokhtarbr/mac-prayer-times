@@ -5,6 +5,7 @@ import Adhan
 struct SettingsView: View {
     @EnvironmentObject var prayerManager: PrayerManager
     @AppStorage("adhanEnabled") private var adhanEnabled = true
+    @AppStorage("calculationMethod") private var calculationMethodRaw = CalculationMethodOption.northAmerica.rawValue
     @State private var launchAtLogin = false
 
     // Iqama offsets (minutes after adhan)
@@ -50,17 +51,27 @@ struct SettingsView: View {
                     }
             }
 
-            Section("About") {
-                LabeledContent("Method") {
-                    Text("ISNA (North America)")
+            Section("Calculation Method") {
+                Picker("Method", selection: $calculationMethodRaw) {
+                    ForEach(CalculationMethodOption.allCases) { method in
+                        Text(method.rawValue).tag(method.rawValue)
+                    }
                 }
+                .onChange(of: calculationMethodRaw) { newValue in
+                    if let method = CalculationMethodOption(rawValue: newValue) {
+                        prayerManager.setCalculationMethod(method)
+                    }
+                }
+            }
+
+            Section("About") {
                 LabeledContent("Version") {
                     Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")
                 }
             }
         }
         .formStyle(.grouped)
-        .frame(width: 420, height: 520)
+        .frame(width: 420, height: 580)
         .onAppear {
             launchAtLogin = (SMAppService.mainApp.status == .enabled)
         }
