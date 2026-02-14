@@ -184,15 +184,18 @@ class PrayerManager: ObservableObject {
             }
         }
 
+        let isFriday = Calendar.current.component(.weekday, from: now) == 6 // 6 = Friday
+
         var entries: [PrayerEntry] = []
         for prayer in Self.displayPrayers {
             let adhanTime = times.time(for: prayer)
             let offset = iqamaOffset(for: prayer)
             let iqamaTime = adhanTime.addingTimeInterval(Double(offset) * 60)
+            let name = (prayer == .dhuhr && isFriday) ? "Jumuah" : Self.prayerNames[prayer]!
 
             entries.append(PrayerEntry(
                 id: Self.prayerNames[prayer]!,
-                name: Self.prayerNames[prayer]!,
+                name: name,
                 time: adhanTime,
                 iqamaTime: iqamaTime,
                 isNext: prayer == next
