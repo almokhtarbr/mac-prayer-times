@@ -15,25 +15,13 @@ A free, local, no-BS Mac menu bar app that shows prayer times and plays the full
 - **100% offline** — pure astronomy math, zero API calls
 - **Lightweight** — pure SwiftUI, no Electron, no web views
 
-## Screenshot
+## Screenshots
 
-```
-┌─────────────────────────────────────┐
-│ ☽ Prayer Times         Feb 14      │
-├─────────────────────────────────────┤
-│ Casablanca, Morocco                 │
-│                    Adhan    Iqama   │
-│ ● Fajr           6:12 AM  6:32 AM │
-│ ○ Dhuhr          1:15 PM  1:30 PM │
-│ ○ Asr            4:30 PM  4:40 PM │
-│ ○ Maghrib        6:45 PM  6:50 PM │
-│ ○ Isha           8:15 PM  8:30 PM │
-├─────────────────────────────────────┤
-│ 🕐 Fajr in 2h 15m                  │
-├─────────────────────────────────────┤
-│ Settings...                   Quit  │
-└─────────────────────────────────────┘
-```
+<p align="center">
+  <img src="screenshots/menu-bar.png" width="360" alt="Prayer times menu bar dropdown showing adhan and iqama columns">
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="screenshots/settings.png" width="360" alt="Settings window with iqama offsets and sound toggle">
+</p>
 
 ## Install
 
