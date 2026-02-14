@@ -28,15 +28,23 @@ struct MenuBarView: View {
     }
 
     private var header: some View {
-        HStack {
-            Image(systemName: "moon.stars.fill")
-                .foregroundColor(.accentColor)
-            Text("Prayer Times")
-                .font(.headline)
-            Spacer()
-            Text(Date(), style: .date)
-                .font(.caption)
-                .foregroundColor(.secondary)
+        VStack(alignment: .leading, spacing: 2) {
+            HStack {
+                Image(systemName: "moon.stars.fill")
+                    .foregroundColor(.accentColor)
+                Text("Prayer Times")
+                    .font(.headline)
+                Spacer()
+                Text(Date(), style: .date)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            if !prayerManager.hijriDateString.isEmpty {
+                Text(prayerManager.hijriDateString + " AH")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
         }
     }
 
@@ -91,10 +99,11 @@ struct MenuBarView: View {
     }
 
     private func countdown(_ next: PrayerEntry) -> some View {
-        HStack {
+        let info = prayerManager.countdownInfo(for: next)
+        return HStack {
             Image(systemName: "clock")
                 .foregroundColor(.green)
-            Text("\(next.name) in \(prayerManager.timeRemaining(for: next))")
+            Text("\(info.label) in \(info.time)")
                 .font(.callout)
                 .fontWeight(.medium)
         }

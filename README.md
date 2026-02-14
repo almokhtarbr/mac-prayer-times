@@ -112,14 +112,26 @@ All settings persist across launches:
 
 ## Roadmap
 
-- [ ] Calculation method picker (MWL, Egyptian, Umm al-Qura, etc.)
-- [ ] Hanafi/Shafi'i madhab option for Asr
-- [ ] Hijri calendar date display
-- [ ] Sunrise time (optional)
-- [ ] Qibla direction
-- [ ] Manual city entry (fallback when GPS denied)
-- [ ] Multiple adhan sounds
-- [ ] App icon
+**High priority:**
+- [ ] [Hijri date in header](../../issues/1)
+- [ ] [Countdown to iqama](../../issues/2)
+- [ ] [Fajr tomorrow after Isha](../../issues/3)
+- [ ] [Calculation method picker](../../issues/4)
+- [ ] [Friday / Jumuah mode](../../issues/5)
+
+**Medium priority:**
+- [ ] [Sunrise row](../../issues/6)
+- [ ] [Sound picker](../../issues/7)
+- [ ] [Volume control](../../issues/8)
+- [ ] [Global keyboard shortcut](../../issues/9)
+- [ ] [Quiet hours / DND](../../issues/10)
+
+**Nice to have:**
+- [ ] [Qibla compass](../../issues/11)
+- [ ] [Ramadan mode](../../issues/12)
+- [ ] [Notification Center widget](../../issues/13)
+- [ ] [iCloud sync](../../issues/14)
+- [ ] [Menu bar display options](../../issues/15)
 
 ## License
 

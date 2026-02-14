@@ -15,6 +15,7 @@ class PrayerManager: ObservableObject {
     @Published var prayerEntries: [PrayerEntry] = []
     @Published var nextPrayerEntry: PrayerEntry?
     @Published var menuBarText: String = ""
+    @Published var hijriDateString: String = ""
 
     let locationManager = LocationManager()
     let adhanPlayer = AdhanPlayer()
@@ -118,15 +119,26 @@ class PrayerManager: ObservableObject {
     func calculateTimes(latitude: Double, longitude: Double) {
         let coordinates = Coordinates(latitude: latitude, longitude: longitude)
         let params = CalculationMethod.northAmerica.params
-        let components = Calendar.current.dateComponents([.year, .month, .day], from: Date())
+        let now = Date()
+        let components = Calendar.current.dateComponents([.year, .month, .day], from: now)
 
         guard let times = PrayerTimes(coordinates: coordinates, date: components, calculationParameters: params) else {
             return
         }
 
-        let now = Date()
         var next = times.nextPrayer(at: now)
         if next == .sunrise { next = .dhuhr }
+
+        // Check if all prayers (including iqama) have passed — need tomorrow's Fajr
+        var allPassed = false
+        if next == nil {
+            // After Isha iqama, show tomorrow's Fajr as next
+            let ishaTime = times.time(for: .isha)
+            let ishaIqama = ishaTime.addingTimeInterval(Double(iqamaOffset(for: .isha)) * 60)
+            if now > ishaIqama {
+                allPassed = true
+            }
+        }
 
         var entries: [PrayerEntry] = []
         for prayer in Self.displayPrayers {
@@ -145,6 +157,25 @@ class PrayerManager: ObservableObject {
 
         prayerEntries = entries
         nextPrayerEntry = entries.first(where: { $0.isNext })
+
+        // If all today's prayers passed, compute tomorrow's Fajr
+        if allPassed || nextPrayerEntry == nil {
+            let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: now)!
+            let tomorrowComponents = Calendar.current.dateComponents([.year, .month, .day], from: tomorrow)
+            if let tomorrowTimes = PrayerTimes(coordinates: coordinates, date: tomorrowComponents, calculationParameters: params) {
+                let fajrTime = tomorrowTimes.time(for: .fajr)
+                let fajrIqama = fajrTime.addingTimeInterval(Double(iqamaOffset(for: .fajr)) * 60)
+                nextPrayerEntry = PrayerEntry(
+                    id: "Fajr",
+                    name: "Fajr",
+                    time: fajrTime,
+                    iqamaTime: fajrIqama,
+                    isNext: true
+                )
+            }
+        }
+
+        updateHijriDate()
         updateMenuBarText()
         scheduleNotifications(entries: entries)
         resetPlayedIfNewDay()
@@ -157,6 +188,17 @@ class PrayerManager: ObservableObject {
             latitude: location.coordinate.latitude,
             longitude: location.coordinate.longitude
         )
+    }
+
+    private static let hijriFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.calendar = Calendar(identifier: .islamicUmmAlQura)
+        f.dateFormat = "d MMMM yyyy"
+        return f
+    }()
+
+    private func updateHijriDate() {
+        hijriDateString = Self.hijriFormatter.string(from: Date())
     }
 
     private func updateMenuBarText() {
@@ -256,13 +298,28 @@ class PrayerManager: ObservableObject {
         }
     }
 
-    func timeRemaining(for entry: PrayerEntry) -> String {
-        let remaining = entry.time.timeIntervalSince(Date())
-        guard remaining > 0 else { return "Now" }
+    /// Returns (label, timeString) — e.g. ("Dhuhr", "1h 20m") or ("Dhuhr iqama", "12m")
+    func countdownInfo(for entry: PrayerEntry) -> (label: String, time: String) {
+        let now = Date()
+        let toAdhan = entry.time.timeIntervalSince(now)
 
-        let hours = Int(remaining) / 3600
-        let minutes = (Int(remaining) % 3600) / 60
+        if toAdhan > 0 {
+            return (entry.name, formatInterval(toAdhan))
+        }
 
+        // Adhan has passed — check iqama
+        let toIqama = entry.iqamaTime.timeIntervalSince(now)
+        if toIqama > 0 {
+            return ("\(entry.name) iqama", formatInterval(toIqama))
+        }
+
+        return (entry.name, "Now")
+    }
+
+    private func formatInterval(_ interval: TimeInterval) -> String {
+        let total = Int(interval)
+        let hours = total / 3600
+        let minutes = (total % 3600) / 60
         if hours > 0 {
             return "\(hours)h \(minutes)m"
         }
