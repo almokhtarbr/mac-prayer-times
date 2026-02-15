@@ -6,6 +6,7 @@ struct SettingsView: View {
     @EnvironmentObject var prayerManager: PrayerManager
     @AppStorage("adhanEnabled") private var adhanEnabled = true
     @AppStorage("calculationMethod") private var calculationMethodRaw = CalculationMethodOption.northAmerica.rawValue
+    @AppStorage("menuBarDisplayMode") private var menuBarDisplayRaw = MenuBarDisplayMode.nameAndCountdown.rawValue
     @State private var launchAtLogin = false
 
     // Iqama offsets (minutes after adhan)
@@ -41,6 +42,14 @@ struct SettingsView: View {
                 }
                 Button("Refresh Location") {
                     prayerManager.locationManager.requestLocation()
+                }
+            }
+
+            Section("Menu Bar") {
+                Picker("Display", selection: $menuBarDisplayRaw) {
+                    ForEach(MenuBarDisplayMode.allCases) { mode in
+                        Text(mode.rawValue).tag(mode.rawValue)
+                    }
                 }
             }
 
