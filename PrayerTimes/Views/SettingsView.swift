@@ -5,8 +5,12 @@ import Adhan
 struct SettingsView: View {
     @EnvironmentObject var prayerManager: PrayerManager
     @AppStorage("adhanEnabled") private var adhanEnabled = true
+    @AppStorage("adhanVolume") private var adhanVolume: Double = 0.8
     @AppStorage("calculationMethod") private var calculationMethodRaw = CalculationMethodOption.northAmerica.rawValue
     @AppStorage("menuBarDisplayMode") private var menuBarDisplayRaw = MenuBarDisplayMode.nameAndCountdown.rawValue
+    @AppStorage("dndEnabled") private var dndEnabled = false
+    @AppStorage("dndStart") private var dndStartMinutes: Int = 1380  // 23:00
+    @AppStorage("dndEnd") private var dndEndMinutes: Int = 420       // 07:00
     @State private var launchAtLogin = false
 
     // Iqama offsets (minutes after adhan)
@@ -20,6 +24,57 @@ struct SettingsView: View {
         Form {
             Section("Sound") {
                 Toggle("Play Adhan at prayer time", isOn: $adhanEnabled)
+
+                if adhanEnabled {
+                    HStack {
+                        Image(systemName: "speaker.fill")
+                            .foregroundColor(.secondary)
+                            .font(.caption)
+                        Slider(value: $adhanVolume, in: 0...1, step: 0.05)
+                            .onChange(of: adhanVolume) { newValue in
+                                prayerManager.adhanPlayer.volume = Float(newValue)
+                            }
+                        Image(systemName: "speaker.wave.3.fill")
+                            .foregroundColor(.secondary)
+                            .font(.caption)
+                        Text("\(Int(adhanVolume * 100))%")
+                            .font(.caption)
+                            .monospacedDigit()
+                            .frame(width: 36, alignment: .trailing)
+                    }
+
+                    Button("Preview") {
+                        prayerManager.adhanPlayer.play()
+                    }
+                }
+            }
+
+            Section {
+                Toggle("Quiet Hours", isOn: $dndEnabled)
+                if dndEnabled {
+                    HStack {
+                        Text("From")
+                        Picker("", selection: $dndStartMinutes) {
+                            ForEach(0..<24, id: \.self) { hour in
+                                Text(formatHour(hour)).tag(hour * 60)
+                            }
+                        }
+                        .frame(width: 90)
+                        Text("to")
+                        Picker("", selection: $dndEndMinutes) {
+                            ForEach(0..<24, id: \.self) { hour in
+                                Text(formatHour(hour)).tag(hour * 60)
+                            }
+                        }
+                        .frame(width: 90)
+                    }
+                }
+            } header: {
+                Text("Do Not Disturb")
+            } footer: {
+                Text("Mute adhan sound during quiet hours. Notifications still appear.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
 
             Section {
@@ -80,7 +135,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 420, height: 580)
+        .frame(width: 420, height: 700)
         .onAppear {
             launchAtLogin = (SMAppService.mainApp.status == .enabled)
         }
@@ -101,6 +156,16 @@ struct SettingsView: View {
                 prayerManager.setIqamaOffset(for: prayer, minutes: newValue)
             }
         }
+    }
+
+    private func formatHour(_ hour: Int) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h:mm a"
+        var components = DateComponents()
+        components.hour = hour
+        components.minute = 0
+        let date = Calendar.current.date(from: components) ?? Date()
+        return formatter.string(from: date)
     }
 
     private func toggleLaunchAtLogin(_ enable: Bool) {

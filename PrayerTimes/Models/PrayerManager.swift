@@ -66,7 +66,7 @@ class PrayerManager: ObservableObject {
     private var playedPrayers: Set<String> = []
     private var currentDateKey: String = ""
 
-    static let displayPrayers: [Prayer] = [.fajr, .dhuhr, .asr, .maghrib, .isha]
+    static let displayPrayers: [Prayer] = [.fajr, .sunrise, .dhuhr, .asr, .maghrib, .isha]
 
     static let prayerNames: [Prayer: String] = [
         .fajr: "Fajr",
@@ -117,8 +117,14 @@ class PrayerManager: ObservableObject {
     }
 
     init() {
-        // Register defaults: adhan enabled + iqama offsets
-        var defaults: [String: Any] = ["adhanEnabled": true]
+        // Register defaults: adhan enabled + iqama offsets + volume + DND
+        var defaults: [String: Any] = [
+            "adhanEnabled": true,
+            "adhanVolume": Float(0.8),
+            "dndEnabled": false,
+            "dndStart": 1380,  // 23:00
+            "dndEnd": 420      // 07:00
+        ]
         for (prayer, offset) in Self.defaultIqamaOffsets {
             if let key = Self.iqamaKeys[prayer] {
                 defaults[key] = offset
@@ -211,7 +217,8 @@ class PrayerManager: ObservableObject {
         var entries: [PrayerEntry] = []
         for prayer in Self.displayPrayers {
             let adhanTime = times.time(for: prayer)
-            let offset = iqamaOffset(for: prayer)
+            let isSunrise = (prayer == .sunrise)
+            let offset = isSunrise ? 0 : iqamaOffset(for: prayer)
             let iqamaTime = adhanTime.addingTimeInterval(Double(offset) * 60)
             let name = (prayer == .dhuhr && isFriday) ? "Jumuah" : Self.prayerNames[prayer]!
 
@@ -220,7 +227,7 @@ class PrayerManager: ObservableObject {
                 name: name,
                 time: adhanTime,
                 iqamaTime: iqamaTime,
-                isNext: prayer == next
+                isNext: !isSunrise && prayer == next
             ))
         }
 
@@ -354,12 +361,15 @@ class PrayerManager: ObservableObject {
 
         let now = Date()
         for entry in prayerEntries {
+            if entry.id == "Sunrise" { continue }
             let diff = abs(now.timeIntervalSince(entry.time))
             if diff < 45 {
                 let key = "\(currentDateKey)-\(entry.id)"
                 if !playedPrayers.contains(key) {
                     playedPrayers.insert(key)
-                    adhanPlayer.play()
+                    if !isDNDActive() {
+                        adhanPlayer.play()
+                    }
                 }
             }
         }
@@ -381,6 +391,7 @@ class PrayerManager: ObservableObject {
 
         let now = Date()
         for entry in entries {
+            if entry.id == "Sunrise" { continue }
             // Notification at adhan time
             if entry.time > now {
                 let content = UNMutableNotificationContent()
@@ -439,6 +450,22 @@ class PrayerManager: ObservableObject {
         }
 
         return (entry.name, "Now")
+    }
+
+    func isDNDActive() -> Bool {
+        guard UserDefaults.standard.bool(forKey: "dndEnabled") else { return false }
+        let start = UserDefaults.standard.integer(forKey: "dndStart")  // minutes from midnight
+        let end = UserDefaults.standard.integer(forKey: "dndEnd")
+        let cal = Calendar.current
+        let now = cal.component(.hour, from: Date()) * 60 + cal.component(.minute, from: Date())
+
+        if start <= end {
+            // Same-day range (e.g. 09:00–17:00)
+            return now >= start && now < end
+        } else {
+            // Overnight range (e.g. 23:00–07:00)
+            return now >= start || now < end
+        }
     }
 
     private func formatInterval(_ interval: TimeInterval) -> String {

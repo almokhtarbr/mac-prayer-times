@@ -73,10 +73,18 @@ struct MenuBarView: View {
             }
 
             ForEach(prayerManager.prayerEntries) { entry in
+                let isSunrise = entry.id == "Sunrise"
                 HStack {
-                    Circle()
-                        .fill(entry.isNext ? Color.green : Color.gray.opacity(0.3))
-                        .frame(width: 8, height: 8)
+                    if isSunrise {
+                        Image(systemName: "sunrise.fill")
+                            .font(.system(size: 7))
+                            .foregroundColor(.orange)
+                            .frame(width: 8)
+                    } else {
+                        Circle()
+                            .fill(entry.isNext ? Color.green : Color.gray.opacity(0.3))
+                            .frame(width: 8, height: 8)
+                    }
                     Text(entry.name)
                         .fontWeight(entry.isNext ? .semibold : .regular)
                         .frame(width: 60, alignment: .leading)
@@ -85,14 +93,19 @@ struct MenuBarView: View {
                         .monospacedDigit()
                         .font(.callout)
                         .frame(width: 70, alignment: .trailing)
-                    Text(Self.timeFormatter.string(from: entry.iqamaTime))
-                        .monospacedDigit()
-                        .font(.callout)
-                        .fontWeight(entry.isNext ? .semibold : .regular)
-                        .foregroundColor(entry.isNext ? .green : .primary)
-                        .frame(width: 70, alignment: .trailing)
+                    if isSunrise {
+                        Text("")
+                            .frame(width: 70, alignment: .trailing)
+                    } else {
+                        Text(Self.timeFormatter.string(from: entry.iqamaTime))
+                            .monospacedDigit()
+                            .font(.callout)
+                            .fontWeight(entry.isNext ? .semibold : .regular)
+                            .foregroundColor(entry.isNext ? .green : .primary)
+                            .frame(width: 70, alignment: .trailing)
+                    }
                 }
-                .foregroundColor(entry.isNext ? .primary : .secondary)
+                .foregroundColor(isSunrise ? .orange.opacity(0.8) : (entry.isNext ? .primary : .secondary))
                 .padding(.vertical, 2)
             }
         }
