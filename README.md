@@ -155,4 +155,4 @@ MIT — do whatever you want with it.
 ## Credits
 
 - Prayer time calculation: [adhan-swift](https://github.com/batoulapps/adhan-swift) by Batoul Apps
-- Built with Claude Code
+- Built by [almokhtar](https://github.com/almokhtarbr)
