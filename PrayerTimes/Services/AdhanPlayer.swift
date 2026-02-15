@@ -5,6 +5,21 @@ class AdhanPlayer: NSObject, ObservableObject {
     @Published var isPlaying = false
     private var player: AVAudioPlayer?
 
+    var volume: Float {
+        get { UserDefaults.standard.float(forKey: "adhanVolume") }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "adhanVolume")
+            player?.volume = newValue
+        }
+    }
+
+    override init() {
+        super.init()
+        if UserDefaults.standard.object(forKey: "adhanVolume") == nil {
+            UserDefaults.standard.set(Float(0.8), forKey: "adhanVolume")
+        }
+    }
+
     func play() {
         guard !isPlaying else { return }
 
@@ -16,6 +31,7 @@ class AdhanPlayer: NSObject, ObservableObject {
         do {
             player = try AVAudioPlayer(contentsOf: url)
             player?.delegate = self
+            player?.volume = volume
             player?.play()
             DispatchQueue.main.async {
                 self.isPlaying = true
