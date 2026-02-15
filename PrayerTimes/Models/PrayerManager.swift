@@ -11,6 +11,15 @@ struct PrayerEntry: Identifiable {
     let isNext: Bool
 }
 
+enum MenuBarDisplayMode: String, CaseIterable, Identifiable {
+    case nameAndCountdown = "Prayer + countdown"
+    case countdownOnly = "Countdown only"
+    case nameAndTime = "Prayer + time"
+    case iconOnly = "Icon only"
+
+    var id: String { rawValue }
+}
+
 enum CalculationMethodOption: String, CaseIterable, Identifiable {
     case northAmerica = "ISNA (North America)"
     case muslimWorldLeague = "Muslim World League"
@@ -98,7 +107,7 @@ class PrayerManager: ObservableObject {
     func setIqamaOffset(for prayer: Prayer, minutes: Int) {
         let key = Self.iqamaKeys[prayer] ?? ""
         UserDefaults.standard.set(minutes, forKey: key)
-        // Recalculate to reflect new offsets
+        SettingsSync.shared.pushToCloud()
         if let location = locationManager.location {
             calculateTimes(
                 latitude: location.coordinate.latitude,
@@ -118,6 +127,18 @@ class PrayerManager: ObservableObject {
         UserDefaults.standard.register(defaults: defaults)
 
         requestNotificationPermission()
+
+        // Start iCloud settings sync
+        SettingsSync.shared.start()
+
+        // Recalculate when settings arrive from another device
+        NotificationCenter.default.addObserver(
+            forName: .settingsDidSyncFromCloud,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.tick()
+        }
 
         locationManager.$location
             .compactMap { $0 }
@@ -155,6 +176,7 @@ class PrayerManager: ObservableObject {
 
     func setCalculationMethod(_ method: CalculationMethodOption) {
         UserDefaults.standard.set(method.rawValue, forKey: "calculationMethod")
+        SettingsSync.shared.pushToCloud()
         if let location = locationManager.location {
             calculateTimes(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
         }
@@ -224,9 +246,40 @@ class PrayerManager: ObservableObject {
 
         updateHijriDate()
         updateMenuBarText()
+        writeSharedData()
         scheduleNotifications(entries: entries)
         resetPlayedIfNewDay()
         checkForAdhan()
+    }
+
+    /// Write prayer data to App Group UserDefaults for the widget
+    private func writeSharedData() {
+        guard let shared = UserDefaults(suiteName: "group.com.prayertimes.shared") else { return }
+        guard let next = nextPrayerEntry else { return }
+
+        shared.set(next.name, forKey: "nextPrayerName")
+        shared.set(next.time.timeIntervalSince1970, forKey: "nextPrayerTime")
+        shared.set(next.iqamaTime.timeIntervalSince1970, forKey: "nextIqamaTime")
+        shared.set(hijriDateString, forKey: "hijriDate")
+
+        // Store all prayer times for the widget
+        var allTimes: [[String: Any]] = []
+        for entry in prayerEntries {
+            allTimes.append([
+                "name": entry.name,
+                "time": entry.time.timeIntervalSince1970,
+                "iqamaTime": entry.iqamaTime.timeIntervalSince1970,
+                "isNext": entry.isNext
+            ])
+        }
+        shared.set(allTimes, forKey: "allPrayerTimes")
+
+        // Store location for widget to use if needed
+        if let loc = locationManager.location {
+            shared.set(loc.coordinate.latitude, forKey: "latitude")
+            shared.set(loc.coordinate.longitude, forKey: "longitude")
+        }
+        shared.set(selectedMethod.rawValue, forKey: "calculationMethod")
     }
 
     private func tick() {
@@ -248,9 +301,32 @@ class PrayerManager: ObservableObject {
         hijriDateString = Self.hijriFormatter.string(from: Date())
     }
 
+    private static let menuBarTimeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.timeStyle = .short
+        return f
+    }()
+
+    var displayMode: MenuBarDisplayMode {
+        let raw = UserDefaults.standard.string(forKey: "menuBarDisplayMode") ?? MenuBarDisplayMode.nameAndCountdown.rawValue
+        return MenuBarDisplayMode(rawValue: raw) ?? .nameAndCountdown
+    }
+
     private func updateMenuBarText() {
         guard let next = nextPrayerEntry else {
             menuBarText = ""
+            return
+        }
+
+        let mode = displayMode
+
+        if mode == .iconOnly {
+            menuBarText = ""
+            return
+        }
+
+        if mode == .nameAndTime {
+            menuBarText = "\(next.name) \(Self.menuBarTimeFormatter.string(from: next.time))"
             return
         }
 
@@ -260,13 +336,15 @@ class PrayerManager: ObservableObject {
             return
         }
 
-        let hours = Int(remaining) / 3600
-        let minutes = (Int(remaining) % 3600) / 60
+        let countdown = formatInterval(remaining)
 
-        if hours > 0 {
-            menuBarText = "\(next.name) \(hours)h \(minutes)m"
-        } else {
-            menuBarText = "\(next.name) \(minutes)m"
+        switch mode {
+        case .nameAndCountdown:
+            menuBarText = "\(next.name) \(countdown)"
+        case .countdownOnly:
+            menuBarText = countdown
+        default:
+            menuBarText = "\(next.name) \(countdown)"
         }
     }
 
