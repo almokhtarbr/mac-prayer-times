@@ -40,8 +40,8 @@ A free, local, no-BS Mac menu bar app that shows prayer times and plays the full
 ### Option 1: Download (macOS 14+)
 
 1. Go to [Releases](../../releases)
-2. Download `PrayerTimes.zip`
-3. Extract and drag `PrayerTimes.app` to `/Applications`
+2. Download `PrayerTimes.dmg`
+3. Open the DMG and drag `PrayerTimes.app` to `Applications`
 4. Open Terminal and run:
    ```bash
    xattr -cr /Applications/PrayerTimes.app
